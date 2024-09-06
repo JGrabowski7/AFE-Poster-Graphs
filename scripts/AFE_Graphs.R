@@ -5,6 +5,8 @@ library(reshape2)
 library(readxl)
 library(dplyr)
 library(gridExtra)
+library(tidyverse)
+library(data.table)
 
 SFS4 <- read_excel("data/sfs4 bible 2024.xlsx")
 BTN4 <- read_excel("data/btn4 revisit data 2024.xlsx")
@@ -180,4 +182,177 @@ treatment_summary <- merged_summary %>%
   group_by(TreatmentStatus)%>%
   summarize(Tree_count = sum(Tree_count), MOG_count = sum(MOG_count), MOG_live_count = sum(MOG_live_count), Surveyed_ha = sum(PlotSize))
 
+--------------------------------------------------------------------------------
 
+## filter data to make dbh cutoff 2.5 
+
+dbh_2.5 <- filter(merged_plots, DBH < 2.5 & Species != "QUGA" & Species != "QUUN" & Species !="JUSC" & Species !="PRVI" & Species !="ACGL")
+
+dbh_2.5_table <- dbh_2.5 %>%
+  group_by(TreatmentStatus, Species) %>%
+  summarise(count = n()) %>%
+  spread(key = TreatmentStatus, value = count, fill = 0)
+
+rate <- dbh_2.5_table$Untreated / dbh_2.5_table$Treated
+
+dbh_2.5_table$rate <-rate
+
+dbh_2.5_cond_table <- dbh_2.5 %>%
+  group_by(Condition, Species) %>%
+  summarise(count = n()) %>%
+  spread(key = Condition, value = count, fill = 0)
+
+setnames(dbh_2.5_cond_table, old=c ("1","3"), new=c ("live", "dalb"))
+
+propDALB <- dbh_2.5_cond_table$dalb / dbh_2.5_cond_table$live
+
+dbh_2.5_cond_table$propDALB <- propDALB
+
+## hist of data
+
+ggplot(dbh_2.5, aes(x=DBH)) +
+  geom_histogram() +
+  facet_wrap(~ TreatmentStatus)
+
+## hist of species by treatment
+
+ggplot(dbh_2.5, aes(x=DBH, fill = TreatmentStatus)) +
+  geom_histogram(stat = "count", position = "stack") +
+  facet_wrap(~ Species)
+
+## hist of species by condition
+
+dbh_2.5$Condition <- as.factor(dbh_2.5$Condition)
+
+ggplot(dbh_2.5, aes(x=DBH, fill = Condition)) +
+  geom_histogram(stat = "count", position = "dodge") +
+  facet_wrap(~ Species)
+
+--------------------------------------------------------------------------------
+  
+## filter data to make dbh cutoff 5
+
+dbh_5 <- filter(merged_plots, DBH < 5 & Species != "QUGA" & Species != "QUUN" & Species !="JUSC" & Species !="PRVI" & Species !="ACGL")
+
+dbh_5_table <- dbh_5 %>%
+  group_by(TreatmentStatus, Species) %>%
+  summarise(count = n()) %>%
+  spread(key = TreatmentStatus, value = count, fill = 0)
+
+rate <- dbh_5_table$Untreated / dbh_5_table$Treated
+
+dbh_5_table$rate <-rate
+
+dbh_5_cond_table <- dbh_5 %>%
+  group_by(Condition, Species) %>%
+  summarise(count = n()) %>%
+  spread(key = Condition, value = count, fill = 0)
+
+setnames(dbh_5_cond_table, old=c ("1","3"), new=c ("live", "dalb"))
+
+propDALB <- dbh_5_cond_table$dalb / dbh_5_cond_table$live
+
+dbh_5_cond_table$propDALB <- propDALB
+
+## hist of data
+
+ggplot(dbh_5, aes(x=DBH)) +
+  geom_histogram() +
+  facet_wrap(~ TreatmentStatus)
+
+## hist facet wrap by species
+
+ggplot(dbh_5, aes(x=DBH, fill = TreatmentStatus)) +
+  geom_histogram(stat = "count", position = "stack") +
+  facet_wrap(~ Species)
+
+dbh_10_cond <- filter(dbh_10, Condition != 2 & Condition != 6 & Condition != 7 & Condition != 9 & Condition != 11)
+
+dbh_10_cond$Condition <- as.factor(dbh_10_cond$Condition)
+
+ggplot(dbh_10_cond, aes(x=DBH, fill = Condition)) +
+  geom_histogram(stat = "count", position = "stack") +
+  facet_wrap(~ Species)
+
+--------------------------------------------------------------------------------
+
+## filter data to make dbh cutoff 10
+
+dbh_10 <- filter(merged_plots, DBH < 10 & Species != "QUGA" & Species != "QUUN" & Species !="JUSC" & Species !="PRVI" & Species !="ACGL" & Species != "SASC" & Species != "unknown")
+
+dbh_10_table <- dbh_10 %>%
+  group_by(TreatmentStatus, Species) %>%
+  summarise(count = n()) %>%
+  spread(key = TreatmentStatus, value = count, fill = 0)
+
+dbh_10 %>%
+  group_by(Condition, Species) %>%
+  summarise(count = n()) %>%
+  spread(key = Condition, value = count, fill = 0)
+
+rate <- dbh_10_table$Untreated / dbh_10_table$Treated
+
+dbh_10_table$rate <-rate
+
+dbh_10_cond_table <- dbh_10 %>%
+  group_by(Condition, Species) %>%
+  summarise(count = n()) %>%
+  spread(key = Condition, value = count, fill = 0)
+
+setnames(dbh_10_cond_table, old=c ("1","3"), new=c ("live", "dalb"))
+
+propDALB <- dbh_10_cond_table$dalb / dbh_10_cond_table$live
+
+dbh_10_cond_table$propDALB <- propDALB
+
+## hist of data
+
+ggplot(dbh_10, aes(x=DBH)) +
+  geom_histogram() +
+  facet_wrap(~ TreatmentStatus)
+
+## hist facet wrap by species
+
+ggplot(dbh_10, aes(x=DBH, fill = TreatmentStatus)) +
+  geom_histogram(stat = "count", position = "stack") +
+  facet_wrap(~ Species)
+
+## hist of species by condition
+
+dbh_10_cond <- filter(dbh_10, Condition != 2 & Condition != 6 & Condition != 7 & Condition != 9 & Condition != 11)
+
+dbh_10_cond$Condition <- as.factor(dbh_10_cond$Condition)
+
+ggplot(dbh_10_cond, aes(x=DBH, fill = Condition)) +
+  geom_histogram(stat = "count", position = "stack") +
+  facet_wrap(~ Species)
+
+--------------------------------------------------------------------------------
+
+## hist of all data
+
+dbh_all <- filter(merged_plots, Species != "QUGA" & Species != "QUUN" & Species !="JUSC" & Species !="PRVI" & Species !="ACGL" & Species != "SASC" & Species != "unknown" & Species != "PIED" & Species != "JUMO")
+  
+ggplot(dbh_all, aes(x=DBH)) +
+  geom_histogram() +
+  facet_wrap(~ TreatmentStatus)
+
+dbh_all_cond <- filter(dbh_all, Condition != 2 & Condition != 6 & Condition != 7 & Condition != 9 & Condition != 11)
+
+dbh_all_cond$Condition <- as.factor(dbh_all_cond$Condition)
+
+ggplot(dbh_all_cond, aes(x=DBH, fill = Condition)) +
+  geom_histogram(stat = "density", position = "stack") +
+  facet_wrap(~ Species) +
+  theme_bw()
+
+dbh_all_cond_table <- dbh_all_cond %>%
+  group_by(Condition, Species) %>%
+  summarise(count = n()) %>%
+  spread(key = Condition, value = count, fill = 0)
+
+setnames(dbh_all_cond_table, old=c ("1","3"), new=c ("live", "dalb"))
+
+propDALB <- dbh_all_cond_table$dalb / dbh_all_cond_table$live
+
+dbh_all_cond_table$propDALB <- propDALB
