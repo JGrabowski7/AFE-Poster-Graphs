@@ -1,0 +1,7 @@
+PlotName,TreatmentStatus,PlotSize(ha),NumTrees,TreeDensity,NumOG,LargeDBHTrees(greaterThan30cm),NumMOG,MOGDensityPerHa
+BTN4,Untreated,1,1518,1518,74,144,150,150
+SFF2,Untreated,1,1333,1333,167,123,187,187
+SFS4,Treated,1,233,233,126,144,159,159
+SFF1,Treated,0.25,85,340,12,45,45,180
+SFF5,Treated,0.25,129,516,14,45,48,192
+SFF10,Treated,0.25,82,328,12,48,49,196
