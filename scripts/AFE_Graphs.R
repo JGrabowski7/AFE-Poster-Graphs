@@ -6,18 +6,18 @@ library(readxl)
 library(dplyr)
 library(gridExtra)
 
-SFS4 <- read_excel("Data/sfs4 bible 2024.xlsx")
-BTN4 <- read_excel("Data/btn4 revisit data 2024.xlsx")
-BTN4dbh <- read_excel ("Data/btn4 access for C.xlsx")
-SFF1 <- read_excel("Data/sff1 establishment data.xlsx")
-SFF2 <- read_excel("Data/sff2 establishment 2024 data.xlsx")
-SFF3 <- read_excel("Data/sff3 establishment data.xlsx")
-SFF4 <- read_excel("Data/sff4 establishment data.xlsx")
-SFF5 <- read_excel("Data/sff5 establishment data 2024.xlsx")
-SFF6 <- read_excel("Data/sff6 establishment data.xlsx")
-SFF8 <- read_excel("Data/sff8 establishment data.xlsx")
-SFF9 <- read_excel("Data/sff9 establishment data.xlsx")
-SFF10 <- read_excel("Data/sff10 initial 2024 data.xlsx")
+SFS4 <- read_excel("data/sfs4 bible 2024.xlsx")
+BTN4 <- read_excel("data/btn4 revisit data 2024.xlsx")
+BTN4dbh <- read_excel ("data/btn4 access for C.xlsx")
+SFF1 <- read_excel("data/sff1 establishment data.xlsx")
+SFF2 <- read_excel("data/sff2 establishment 2024 data.xlsx")
+SFF3 <- read_excel("data/sff3 establishment data.xlsx")
+SFF4 <- read_excel("data/sff4 establishment data.xlsx")
+SFF5 <- read_excel("data/sff5 establishment data 2024.xlsx")
+SFF6 <- read_excel("data/sff6 establishment data.xlsx")
+SFF8 <- read_excel("data/sff8 establishment data.xlsx")
+SFF9 <- read_excel("data/sff9 establishment data.xlsx")
+SFF10 <- read_excel("data/sff10 initial 2024 data.xlsx")
 
 #Fix janky column name in SFF2
 names(SFF2)[5] <- paste("DBH")
@@ -179,3 +179,5 @@ merged_plots <- add_tree_colors(merged_plots)
 treatment_summary <- merged_summary %>%
   group_by(TreatmentStatus)%>%
   summarize(Tree_count = sum(Tree_count), MOG_count = sum(MOG_count), MOG_live_count = sum(MOG_live_count), Surveyed_ha = sum(PlotSize))
+
+
