@@ -197,12 +197,16 @@ rate <- dbh_2.5_table$Untreated / dbh_2.5_table$Treated
 
 dbh_2.5_table$rate <-rate
 
-dbh_2.5_cond_table <- dbh_2.5 %>%
+dbh_2.5_cond <- filter(dbh_2.5, Condition != 2  & Condition != 7  & Condition != 11 & Condition != "NA")
+
+dbh_2.5_cond$Condition <- as.factor(dbh_2.5_cond$Condition)
+
+dbh_2.5_cond_table <- dbh_2.5_cond %>%
   group_by(Condition, Species) %>%
   summarise(count = n()) %>%
   spread(key = Condition, value = count, fill = 0)
 
-setnames(dbh_2.5_cond_table, old=c ("1","3"), new=c ("live", "dalb"))
+setnames(dbh_2.5_cond_table, old=c ("1","3", "5"), new=c ("live", "dalb", "dead"))
 
 propDALB <- dbh_2.5_cond_table$dalb / dbh_2.5_cond_table$live
 
