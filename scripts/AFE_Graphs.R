@@ -193,9 +193,13 @@ dbh_2.5_table <- dbh_2.5 %>%
   summarise(count = n()) %>%
   spread(key = TreatmentStatus, value = count, fill = 0)
 
+## make rate of species 
+
 rate <- dbh_2.5_table$Untreated / dbh_2.5_table$Treated
 
 dbh_2.5_table$rate <-rate
+
+## filter out conditions and make table
 
 dbh_2.5_cond <- filter(dbh_2.5, Condition != 2  & Condition != 7  & Condition != 11 & Condition != "NA")
 
@@ -226,11 +230,12 @@ ggplot(dbh_2.5, aes(x=DBH, fill = TreatmentStatus)) +
 
 ## hist of species by condition
 
-dbh_2.5$Condition <- as.factor(dbh_2.5$Condition)
+dbh_2.5_cond$Condition <- as.factor(dbh_2.5_cond$Condition)
 
-ggplot(dbh_2.5, aes(x=DBH, fill = Condition)) +
+ggplot(dbh_2.5_cond, aes(x=DBH, fill = Condition)) +
   geom_histogram(stat = "count", position = "dodge") +
-  facet_wrap(~ Species)
+  facet_wrap(~ Species) +
+  scale_color_manual(labels = c("live", "dead", "dalb"))
 
 --------------------------------------------------------------------------------
   
