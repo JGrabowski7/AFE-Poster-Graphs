@@ -186,7 +186,7 @@ treatment_summary <- merged_summary %>%
 
 ## filter data to make dbh cutoff 2.5 
 
-dbh_2.5 <- filter(merged_plots, DBH < 2.5 & Species != "QUGA" & Species != "QUUN" & Species !="JUSC" & Species !="PRVI" & Species !="ACGL")
+dbh_2.5 <- filter(merged_plots, DBH < 2.5 & Species != "QUGA" & Species != "QUUN" & Species !="JUSC" & Species !="PRVI" & Species !="ACGL" & Species != "JUMO" & Species != "PIED")
 
 dbh_2.5_table <- dbh_2.5 %>%
   group_by(TreatmentStatus, Species) %>%
@@ -217,7 +217,7 @@ ggplot(dbh_2.5, aes(x=DBH)) +
 ## hist of species by treatment
 
 ggplot(dbh_2.5, aes(x=DBH, fill = TreatmentStatus)) +
-  geom_histogram(stat = "count", position = "stack") +
+  geom_histogram(stat = "count", position = "dodge") +
   facet_wrap(~ Species)
 
 ## hist of species by condition
@@ -232,7 +232,7 @@ ggplot(dbh_2.5, aes(x=DBH, fill = Condition)) +
   
 ## filter data to make dbh cutoff 5
 
-dbh_5 <- filter(merged_plots, DBH < 5 & Species != "QUGA" & Species != "QUUN" & Species !="JUSC" & Species !="PRVI" & Species !="ACGL")
+dbh_5 <- filter(merged_plots, DBH < 5 & Species != "QUGA" & Species != "QUUN" & Species !="JUSC" & Species !="PRVI" & Species !="ACGL" & Species != "JUMO" & Species != "PIED")
 
 dbh_5_table <- dbh_5 %>%
   group_by(TreatmentStatus, Species) %>%
@@ -278,7 +278,7 @@ ggplot(dbh_10_cond, aes(x=DBH, fill = Condition)) +
 
 ## filter data to make dbh cutoff 10
 
-dbh_10 <- filter(merged_plots, DBH < 10 & Species != "QUGA" & Species != "QUUN" & Species !="JUSC" & Species !="PRVI" & Species !="ACGL" & Species != "SASC" & Species != "unknown")
+dbh_10 <- filter(merged_plots, DBH < 10 & Species != "QUGA" & Species != "QUUN" & Species !="JUSC" & Species !="PRVI" & Species !="ACGL" & Species != "SASC" & Species != "unknown" & Species != "JUMO" & Species != "PIED")
 
 dbh_10_table <- dbh_10 %>%
   group_by(TreatmentStatus, Species) %>%
@@ -331,7 +331,7 @@ ggplot(dbh_10_cond, aes(x=DBH, fill = Condition)) +
 
 ## hist of all data
 
-dbh_all <- filter(merged_plots, Species != "QUGA" & Species != "QUUN" & Species !="JUSC" & Species !="PRVI" & Species !="ACGL" & Species != "SASC" & Species != "unknown" & Species != "PIED" & Species != "JUMO")
+dbh_all <- filter(merged_plots, Species != "QUGA" & Species != "QUUN" & Species !="JUSC" & Species !="PRVI" & Species !="ACGL" & Species != "SASC" & Species != "unknown" & Species != "JUMO" & Species != "PIED")
   
 ggplot(dbh_all, aes(x=DBH)) +
   geom_histogram() +
