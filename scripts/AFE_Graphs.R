@@ -9,20 +9,17 @@ library(tidyverse)
 library(data.table)
 
 SFS4 <- read_excel("data/sfs4 bible 2024.xlsx")
-BTN4 <- read_excel("data/btn4 revisit data 2024.xlsx")
-BTN4dbh <- read_excel ("data/btn4 access for C.xlsx")
-SFF1 <- read_excel("data/sff1 establishment data.xlsx")
-SFF2 <- read_excel("data/sff2 establishment 2024 data.xlsx")
-SFF3 <- read_excel("data/sff3 establishment data.xlsx")
-SFF4 <- read_excel("data/sff4 establishment data.xlsx")
-SFF5 <- read_excel("data/sff5 establishment data 2024.xlsx")
-SFF6 <- read_excel("data/sff6 establishment data.xlsx")
-SFF8 <- read_excel("data/sff8 establishment data.xlsx")
-SFF9 <- read_excel("data/sff9 establishment data.xlsx")
-SFF10 <- read_excel("data/sff10 initial 2024 data.xlsx")
-
-#Fix janky column name in SFF2
-names(SFF2)[5] <- paste("DBH")
+BTN4 <- read_excel("data/btn4 revisit 2024.xlsx")
+BTN4dbh <- read_excel("data/btn4 access for C.xlsx")
+SFF1 <- read_excel("data/sff1 establishment 2024.xlsx")
+SFF2 <- read_excel("data/sff2 establishment 2024.xlsx")
+SFF3 <- read_excel("data/sff3 establishment 2024.xlsx")
+SFF4 <- read_excel("data/sff4 establishment 2024.xlsx")
+SFF5 <- read_excel("data/sff5 establishment 2024.xlsx")
+SFF6 <- read_excel("data/sff6 establishment 2024.xlsx")
+SFF8 <- read_excel("data/sff8 establishment 2024.xlsx")
+SFF9 <- read_excel("data/sff9 establishment 2024.xlsx")
+SFF10 <- read_excel("data/sff10 establishment 2024.xlsx")
 
 #Add plot numbers to treeIDs
 
@@ -186,7 +183,7 @@ treatment_summary <- merged_summary %>%
 
 ## filter data to make dbh cutoff 2.5 
 
-dbh_2.5 <- filter(merged_plots, DBH < 2.5 & Species != "QUGA" & Species != "QUUN" & Species !="JUSC" & Species !="PRVI" & Species !="ACGL" & Species != "JUMO" & Species != "PIED")
+dbh_2.5 <- filter(merged_plots, DBH < 2.5 & Species != "QUGA" & Species != "QUUN" & Species !="JUSC" & Species !="PRVI" & Species !="ACGL" & Species != "JUMO" & Species != "PIED" & Species != "POTR")
 
 dbh_2.5_table <- dbh_2.5 %>%
   group_by(TreatmentStatus, Species) %>%
@@ -241,7 +238,7 @@ ggplot(dbh_2.5_cond, aes(x=DBH, fill = Condition)) +
   
 ## filter data to make dbh cutoff 5
 
-dbh_5 <- filter(merged_plots, DBH < 5 & Species != "QUGA" & Species != "QUUN" & Species !="JUSC" & Species !="PRVI" & Species !="ACGL" & Species != "JUMO" & Species != "PIED")
+dbh_5 <- filter(merged_plots, DBH < 5 & Species != "QUGA" & Species != "QUUN" & Species !="JUSC" & Species !="PRVI" & Species !="ACGL" & Species != "JUMO" & Species != "PIED" & Species != "POTR")
 
 dbh_5_table <- dbh_5 %>%
   group_by(TreatmentStatus, Species) %>%
@@ -275,11 +272,11 @@ ggplot(dbh_5, aes(x=DBH, fill = TreatmentStatus)) +
   geom_histogram(stat = "count", position = "stack") +
   facet_wrap(~ Species)
 
-dbh_10_cond <- filter(dbh_10, Condition != 2 & Condition != 6 & Condition != 7 & Condition != 9 & Condition != 11)
+dbh_5_cond <- filter(dbh_5, Condition != 2 & Condition != 6 & Condition != 7 & Condition != 9 & Condition != 11)
 
-dbh_10_cond$Condition <- as.factor(dbh_10_cond$Condition)
+dbh_5_cond$Condition <- as.factor(dbh_5_cond$Condition)
 
-ggplot(dbh_10_cond, aes(x=DBH, fill = Condition)) +
+ggplot(dbh_5_cond, aes(x=DBH, fill = Condition)) +
   geom_histogram(stat = "count", position = "stack") +
   facet_wrap(~ Species)
 
@@ -287,7 +284,7 @@ ggplot(dbh_10_cond, aes(x=DBH, fill = Condition)) +
 
 ## filter data to make dbh cutoff 10
 
-dbh_10 <- filter(merged_plots, DBH < 10 & Species != "QUGA" & Species != "QUUN" & Species !="JUSC" & Species !="PRVI" & Species !="ACGL" & Species != "SASC" & Species != "unknown" & Species != "JUMO" & Species != "PIED")
+dbh_10 <- filter(merged_plots, DBH < 10 & Species != "QUGA" & Species != "QUUN" & Species !="JUSC" & Species !="PRVI" & Species !="ACGL" & Species != "SASC" & Species != "unknown" & Species != "JUMO" & Species != "PIED" & Species != "POTR")
 
 dbh_10_table <- dbh_10 %>%
   group_by(TreatmentStatus, Species) %>%
@@ -365,3 +362,16 @@ setnames(dbh_all_cond_table, old=c ("1","3"), new=c ("live", "dalb"))
 propDALB <- dbh_all_cond_table$dalb / dbh_all_cond_table$live
 
 dbh_all_cond_table$propDALB <- propDALB
+
+--------------------------------------------------------------------------------
+  
+## Veg
+  
+veg_data <- read.csv("data/all veg 2024.csv")
+
+aerial_data <- filter(veg_data, CoverType == "Aerial")
+
+ggplot(aerial_data, aes(x=Species, fill = Species)) +
+  geom_bar(stat = "count")
+  
+
