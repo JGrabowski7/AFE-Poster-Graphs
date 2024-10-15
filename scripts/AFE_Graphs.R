@@ -9,38 +9,33 @@ library(tidyverse)
 library(data.table)
 
 SFS4 <- read_excel("data/sfs4 bible 2024.xlsx")
-BTN4 <- read_excel("data/btn4 revisit 2024.xlsx")
-BTN4dbh <- read_excel("data/btn4 access for C.xlsx")
+BTN4 <- read_excel("data/btn4 all data 2024.xlsx")
+#BTN4dbh <- read_excel("data/btn4 access for C.xlsx")
 SFF1 <- read_excel("data/sff1 establishment 2024.xlsx")
 SFF2 <- read_excel("data/sff2 establishment 2024.xlsx")
 SFF3 <- read_excel("data/sff3 establishment 2024.xlsx")
 SFF4 <- read_excel("data/sff4 establishment 2024.xlsx")
 SFF5 <- read_excel("data/sff5 establishment 2024.xlsx")
 SFF6 <- read_excel("data/sff6 establishment 2024.xlsx")
+SFF7 <- read_excel("data/sff7 establishment 2024.xlsx")
 SFF8 <- read_excel("data/sff8 establishment 2024.xlsx")
 SFF9 <- read_excel("data/sff9 establishment 2024.xlsx")
 SFF10 <- read_excel("data/sff10 establishment 2024.xlsx")
 
-#Add plot numbers to treeIDs
+# Add plot numbers to treeIDs
+# BTN4 already has plot numbers 
 
 SFS4$Tree_num = paste0('SFS4-', SFS4$Tree_num)
-BTN4$Tree_num = paste0('BTN4-', BTN4$Tree_num)
 SFF1$Tree_num = paste0('SFF1-', SFF1$Tree_num)
 SFF2$Tree_num = paste0('SFF2-', SFF2$Tree_num)
 SFF3$Tree_num = paste0('SFF3-', SFF3$Tree_num)
 SFF4$Tree_num = paste0('SFF4-', SFF4$Tree_num)
 SFF5$Tree_num = paste0('SFF5-', SFF5$Tree_num)
 SFF6$Tree_num = paste0('SFF6-', SFF6$Tree_num)
+SFF7$Tree_num = paste0('SFF7-', SFF7$Tree_num)
 SFF8$Tree_num = paste0('SFF8-', SFF8$Tree_num)
 SFF9$Tree_num = paste0('SFF9-', SFF9$Tree_num)
 SFF10$Tree_num = paste0('SFF10-', SFF10$Tree_num)
-
-#do a quick n dirty join of BTN4 DBH & Species files
-BTN4dbh$Tree_num <- BTN4dbh$TreeID
-BTN4 <- left_join(BTN4, BTN4dbh, by = "Tree_num")
-BTN4$Species <- BTN4$SpeciesID
-BTN4$Notes<-BTN4$Notes.x
-
 
 #Add plot number to data
 SFS4$PlotName <- "SFS4"
@@ -51,6 +46,7 @@ SFF3$PlotName <- "SFF3"
 SFF4$PlotName <- "SFF4"
 SFF5$PlotName <- "SFF5"
 SFF6$PlotName <- "SFF6"
+SFF7$PlotName <- "SFF7"
 SFF8$PlotName <- "SFF8"
 SFF9$PlotName <- "SFF9"
 SFF10$PlotName <- "SFF10"
@@ -65,11 +61,12 @@ SFF3$TreatmentStatus <- "Untreated"
 SFF4$TreatmentStatus <- "Untreated"
 SFF5$TreatmentStatus <- "Treated"
 SFF6$TreatmentStatus <- "Untreated"
+SFF7$TreatmentStatus <- "Treated"
 SFF8$TreatmentStatus <- "Treated"
 SFF9$TreatmentStatus <- "Untreated"
 SFF10$TreatmentStatus <- "Treated"
 
-#Add plot size
+# Add plot size
 SFS4$PlotSize <- 1
 BTN4$PlotSize <- 1
 SFF1$PlotSize <- 0.25
@@ -78,6 +75,7 @@ SFF3$PlotSize <- 0.25
 SFF4$PlotSize <- 0.25
 SFF5$PlotSize <- 0.25
 SFF6$PlotSize <- 0.25
+SFF7$PlotSize <- 0.25
 SFF8$PlotSize <- 1
 SFF9$PlotSize <- 0.25
 SFF10$PlotSize <- 0.25
@@ -100,6 +98,8 @@ SFF5 <- SFF5 %>%
   select(PlotName, PlotSize, TreatmentStatus, Tree_num, Species, Condition, DBH, OG,  Notes)
 SFF6 <- SFF6 %>%
   select(PlotName, PlotSize, TreatmentStatus, Tree_num, Species, Condition, DBH, OG, Notes)
+SFF7 <- SFF7 %>%
+  select(PlotName, PlotSize, TreatmentStatus, Tree_num, Species, Condition, DBH, OG, Notes)
 SFF8 <- SFF8 %>%
   select(PlotName, PlotSize, TreatmentStatus, Tree_num, Species, Condition, DBH, OG, Notes)
 SFF9 <- SFF9 %>%
@@ -110,7 +110,8 @@ SFF10 <- SFF10 %>%
 
 #Okay well, now we merge all the plots into one dataframe
 SFS4$Condition <- as.numeric(SFS4$Condition)
-merged_plots <- bind_rows(SFS4, BTN4, SFF1, SFF2, SFF3, SFF4, SFF5, SFF6, SFF8, SFF9, SFF10)
+BTN4$Condition <- as.numeric(BTN4$Condition)
+merged_plots <- bind_rows(SFS4, BTN4, SFF1, SFF2, SFF3, SFF4, SFF5, SFF6, SFF7, SFF8, SFF9, SFF10)
 
 #Now we add a column to define MOG as Y or NA
 merged_plots <- merged_plots %>%
@@ -183,7 +184,7 @@ treatment_summary <- merged_summary %>%
 
 ## filter data to make dbh cutoff 2.5 
 
-dbh_2.5 <- filter(merged_plots, DBH < 2.5 & Species != "QUGA" & Species != "QUUN" & Species !="JUSC" & Species !="PRVI" & Species !="ACGL" & Species != "JUMO" & Species != "PIED" & Species != "POTR")
+dbh_2.5 <- filter(merged_plots, DBH < 2.5 & Species != "QUGA" & Species != "QUUN" & Species !="JUSC" & Species !="PRVI" & Species !="ACGL" & Species != "JUMO" & Species != "PIED" & Species != "POTR" & Species != "SASC")
 
 dbh_2.5_table <- dbh_2.5 %>%
   group_by(TreatmentStatus, Species) %>%
@@ -196,9 +197,158 @@ rate <- dbh_2.5_table$Untreated / dbh_2.5_table$Treated
 
 dbh_2.5_table$rate <-rate
 
+## hist of data
+
+ggplot(dbh_2.5, aes(x=DBH)) +
+  geom_histogram() +
+  facet_wrap(~ TreatmentStatus)
+
+## species comp all data
+
+ggplot(dbh_2.5, aes(x = TreatmentStatus, y = count, fill = Species)) +
+  geom_bar(position = "fill", stat = "identity") +
+  xlab("") +
+  ylab("Number of species") +
+  scale_fill_manual(values = c("ABCO" = "#4EDFC7",
+                               "PIPO" = "#2E8B57",
+                               "PIST" = "#89CFF0",
+                               "PSME" = "#5D3FD3")) +
+  theme_minimal()+
+  theme(legend.position = "none")
+
+## species composition by treatment
+
+num_trees_by_treatment <- dbh_2.5 %>% 
+  group_by(Species, TreatmentStatus) %>% 
+  summarize(count=n())
+
+ggplot(num_trees_by_treatment, aes(x = TreatmentStatus, y = count, fill = Species)) +
+  geom_bar(position = "fill", stat = "identity") +
+  xlab("") +
+  ylab("Number of species") +
+  scale_fill_manual(values = c("ABCO" = "#4EDFC7",
+                               "PIPO" = "#2E8B57",
+                               "PIST" = "#89CFF0",
+                               "PSME" = "#5D3FD3")) +
+  theme_minimal()+
+  theme(legend.position = "none") 
+  facet_wrap(~ TreatmentStatus)
+
+## species composition by plot
+
+num_trees_by_plot <- dbh_2.5 %>% 
+  group_by(PlotName, PlotSize, Species, TreatmentStatus) %>% 
+  summarize(count=n())
+  
+TreatedPlotTrees <- filter(num_trees_by_plot, TreatmentStatus == "Treated")
+UntreatedPlotTrees <- filter(num_trees_by_plot, TreatmentStatus == "Untreated")
+
+TreatedComp <- ggplot(TreatedPlotTrees, aes(x = PlotName, y = count, fill = Species)) +
+                geom_bar(position = "fill", stat = "identity") +
+                xlab("") +
+                ylab("Number of species") +
+                scale_fill_manual(values = c("ABCO" = "#4EDFC7",
+                                             "PIPO" = "#2E8B57",
+                                             "PIST" = "#89CFF0",
+                                             "PSME" = "#5D3FD3")) +
+                theme_minimal()+
+                theme(legend.position = "none")
+
+UntreatedComp <- ggplot(UntreatedPlotTrees, aes(x = PlotName, y = count, fill = Species)) +
+  geom_bar(position = "fill", stat = "identity") +
+  xlab("") +
+  ylab("Number of species") +
+  scale_fill_manual(values = c("ABCO" = "#4EDFC7",
+                               "PIPO" = "#2E8B57",
+                               "PIST" = "#89CFF0",
+                               "PSME" = "#5D3FD3")) +
+  theme_minimal()+
+  theme(legend.position = "none")
+
+## Need to stack graphs on top of each other 
+
+## tree density 
+
+num_trees_by_sp <- dbh_2.5 %>% 
+group_by(Species) %>%
+summarize(count=n())
+
+density <- num_trees_by_sp$count / sum(merged_summary$PlotSize)
+
+num_trees_by_sp$density <- density
+
+ggplot(num_trees_by_sp, aes(x = Species, y = density, fill = Species)) +
+  geom_bar(stat = "identity") +
+  xlab("") +
+  ylab("Trees per hectare") +
+  ylim(0, 100) +
+  scale_fill_manual(values = c("ABCO" = "#4EDFC7",
+                               "PIPO" = "#2E8B57",
+                               "PIST" = "#89CFF0",
+                               "PSME" = "#5D3FD3")) +
+  theme_minimal()+
+  theme(legend.position = "none")
+
+## tree density by treatment
+
+num_trees_by_treatment <- dbh_2.5 %>% 
+  group_by(Species, TreatmentStatus) %>% 
+  summarize(count=n())
+
+density <- num_trees_by_treatment$count / (sum(merged_summary$PlotSize) / 2)
+
+num_trees_by_treatment$density <- density
+
+ggplot(num_trees_by_treatment, aes(x = Species, y = density, fill = Species)) +
+  geom_bar(stat = "identity") +
+  xlab("") +
+  ylab("Trees per hectare") +
+  ylim(0, 200) +
+  scale_fill_manual(values = c("ABCO" = "#4EDFC7",
+                               "PIPO" = "#2E8B57",
+                               "PIST" = "#89CFF0",
+                               "PSME" = "#5D3FD3")) +
+  theme_minimal()+
+  theme(legend.position = "none") + 
+  facet_wrap(~ TreatmentStatus)
+
+## tree density by plot
+
+num_trees_by_plot <- dbh_2.5 %>% 
+  group_by(PlotName, PlotSize, Species, TreatmentStatus) %>% 
+  summarize(count=n())
+
+density <- num_trees_by_plot$count / num_trees_by_plot$PlotSize
+
+num_trees_by_plot$density <- density
+
+ggplot(num_trees_by_plot, aes(x= Species, y = density, fill = Species)) +
+  geom_bar(stat = "identity") +
+  xlab("") +
+  ylab("Number of species") +
+  ylim(0, 700) +
+  scale_fill_manual(values = c("ABCO" = "#4EDFC7",
+                               "PIPO" = "#2E8B57",
+                               "PIST" = "#89CFF0",
+                               "PSME" = "#5D3FD3")) +
+  theme_minimal()+
+  theme(legend.position = "none") + 
+  facet_wrap(~ TreatmentStatus + PlotName, ncol = 6)
+
+## hist of species by treatment
+
+ggplot(dbh_2.5, aes(x=DBH, fill = TreatmentStatus)) +
+  geom_histogram(stat = "count", position = "dodge") +
+  xlab("DBH") +
+  ylab("Number of trees") +
+  ylim(0, 50) +
+  theme_minimal() +
+  theme(legend.title = element_blank()) +
+  facet_wrap(~ Species)
+
 ## filter out conditions and make table
 
-dbh_2.5_cond <- filter(dbh_2.5, Condition != 2  & Condition != 7  & Condition != 11 & Condition != "NA")
+dbh_2.5_cond <- filter(dbh_2.5, Condition != 2  & Condition != 7  & Condition != 11 & Condition != 9 & Condition != "NA")
 
 dbh_2.5_cond$Condition <- as.factor(dbh_2.5_cond$Condition)
 
@@ -212,18 +362,6 @@ setnames(dbh_2.5_cond_table, old=c ("1","3", "5"), new=c ("live", "dalb", "dead"
 propDALB <- dbh_2.5_cond_table$dalb / dbh_2.5_cond_table$live
 
 dbh_2.5_cond_table$propDALB <- propDALB
-
-## hist of data
-
-ggplot(dbh_2.5, aes(x=DBH)) +
-  geom_histogram() +
-  facet_wrap(~ TreatmentStatus)
-
-## hist of species by treatment
-
-ggplot(dbh_2.5, aes(x=DBH, fill = TreatmentStatus)) +
-  geom_histogram(stat = "count", position = "dodge") +
-  facet_wrap(~ Species)
 
 ## hist of species by condition
 
@@ -368,6 +506,34 @@ dbh_all_cond_table$propDALB <- propDALB
 ## Veg
   
 veg_data <- read.csv("data/all veg 2024.csv")
+
+BTN4 <- veg_data %>% filter(grepl("BTN4V", PlotID, ignore.case = TRUE))
+SFS4 <- veg_data %>% filter(grepl("SFS4V", PlotID, ignore.case = TRUE))
+SFF1 <- veg_data %>% filter(grepl("SFF1V", PlotID, ignore.case = TRUE))
+SFF2 <- veg_data %>% filter(grepl("SFF2V", PlotID, ignore.case = TRUE))
+SFF3 <- veg_data %>% filter(grepl("SFF3V", PlotID, ignore.case = TRUE))
+SFF4 <- veg_data %>% filter(grepl("SFF4V", PlotID, ignore.case = TRUE))
+SFF5 <- veg_data %>% filter(grepl("SFF5V", PlotID, ignore.case = TRUE))
+SFF6 <- veg_data %>% filter(grepl("SFF6V", PlotID, ignore.case = TRUE))
+SFF7 <- veg_data %>% filter(grepl("SFF7V", PlotID, ignore.case = TRUE))
+SFF8 <- veg_data %>% filter(grepl("SFF8V", PlotID, ignore.case = TRUE))
+SFF9 <- veg_data %>% filter(grepl("SFF9V", PlotID, ignore.case = TRUE))
+SFF10 <- veg_data %>% filter(grepl("SFF10V", PlotID, ignore.case = TRUE))
+
+#Add treatment status
+
+SFS4$TreatmentStatus <- "Treated"
+BTN4$TreatmentStatus <- "Untreated"
+SFF1$TreatmentStatus <- "Treated"
+SFF2$TreatmentStatus <- "Untreated"
+SFF3$TreatmentStatus <- "Untreated"
+SFF4$TreatmentStatus <- "Untreated"
+SFF5$TreatmentStatus <- "Treated"
+SFF6$TreatmentStatus <- "Untreated"
+SFF7$TreatmentStatus <- "Treated"
+SFF8$TreatmentStatus <- "Treated"
+SFF9$TreatmentStatus <- "Untreated"
+SFF10$TreatmentStatus <- "Treated"
 
 aerial_data <- filter(veg_data, CoverType == "Aerial")
 
