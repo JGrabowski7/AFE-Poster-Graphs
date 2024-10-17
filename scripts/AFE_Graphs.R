@@ -10,7 +10,6 @@ library(data.table)
 
 SFS4 <- read_excel("data/sfs4 bible 2024.xlsx")
 BTN4 <- read_excel("data/btn4 all data 2024.xlsx")
-#BTN4dbh <- read_excel("data/btn4 access for C.xlsx")
 SFF1 <- read_excel("data/sff1 establishment 2024.xlsx")
 SFF2 <- read_excel("data/sff2 establishment 2024.xlsx")
 SFF3 <- read_excel("data/sff3 establishment 2024.xlsx")
@@ -230,9 +229,7 @@ ggplot(num_trees_by_treatment, aes(x = TreatmentStatus, y = count, fill = Specie
                                "PIPO" = "#2E8B57",
                                "PIST" = "#89CFF0",
                                "PSME" = "#5D3FD3")) +
-  theme_minimal()+
-  theme(legend.position = "none") 
-  facet_wrap(~ TreatmentStatus)
+  theme_minimal()
 
 ## species composition by plot
 
@@ -246,7 +243,7 @@ UntreatedPlotTrees <- filter(num_trees_by_plot, TreatmentStatus == "Untreated")
 TreatedComp <- ggplot(TreatedPlotTrees, aes(x = PlotName, y = count, fill = Species)) +
                 geom_bar(position = "fill", stat = "identity") +
                 xlab("") +
-                ylab("Number of species") +
+                ylab("Percent species") +
                 scale_fill_manual(values = c("ABCO" = "#4EDFC7",
                                              "PIPO" = "#2E8B57",
                                              "PIST" = "#89CFF0",
@@ -257,7 +254,7 @@ TreatedComp <- ggplot(TreatedPlotTrees, aes(x = PlotName, y = count, fill = Spec
 UntreatedComp <- ggplot(UntreatedPlotTrees, aes(x = PlotName, y = count, fill = Species)) +
   geom_bar(position = "fill", stat = "identity") +
   xlab("") +
-  ylab("Number of species") +
+  ylab("Percent species") +
   scale_fill_manual(values = c("ABCO" = "#4EDFC7",
                                "PIPO" = "#2E8B57",
                                "PIST" = "#89CFF0",
@@ -265,7 +262,7 @@ UntreatedComp <- ggplot(UntreatedPlotTrees, aes(x = PlotName, y = count, fill = 
   theme_minimal()+
   theme(legend.position = "none")
 
-## Need to stack graphs on top of each other 
+grid.arrange(TreatedComp, UntreatedComp, ncol=1)
 
 ## tree density 
 
@@ -376,7 +373,7 @@ ggplot(dbh_2.5_cond, aes(x=DBH, fill = Condition)) +
   
 ## filter data to make dbh cutoff 5
 
-dbh_5 <- filter(merged_plots, DBH < 5 & Species != "QUGA" & Species != "QUUN" & Species !="JUSC" & Species !="PRVI" & Species !="ACGL" & Species != "JUMO" & Species != "PIED" & Species != "POTR")
+dbh_5 <- filter(merged_plots, DBH < 5 & Species != "QUGA" & Species != "QUUN" & Species !="JUSC" & Species !="PRVI" & Species !="ACGL" & Species != "JUMO" & Species != "PIED" & Species != "POTR" & Species != "SASC")
 
 dbh_5_table <- dbh_5 %>%
   group_by(TreatmentStatus, Species) %>%
@@ -386,6 +383,155 @@ dbh_5_table <- dbh_5 %>%
 rate <- dbh_5_table$Untreated / dbh_5_table$Treated
 
 dbh_5_table$rate <-rate
+
+## hist of data
+
+ggplot(dbh_5, aes(x=DBH)) +
+  geom_histogram() +
+  facet_wrap(~ TreatmentStatus)
+
+## species comp all data (this doesn't work)
+
+ggplot(dbh_5, aes(x = TreatmentStatus, y = count, fill = Species)) +
+  geom_bar(position = "fill", stat = "identity") +
+  xlab("") +
+  ylab("Number of species") +
+  scale_fill_manual(values = c("ABCO" = "#4EDFC7",
+                               "PIPO" = "#2E8B57",
+                               "PIST" = "#89CFF0",
+                               "PSME" = "#5D3FD3")) +
+  theme_minimal()+
+  theme(legend.position = "none")
+
+## species composition by treatment
+
+num_trees_by_treatment <- dbh_5 %>% 
+  group_by(Species, TreatmentStatus) %>% 
+  summarize(count=n())
+
+ggplot(num_trees_by_treatment, aes(x = TreatmentStatus, y = count, fill = Species)) +
+  geom_bar(position = "fill", stat = "identity") +
+  xlab("") +
+  ylab("Number of species") +
+  scale_fill_manual(values = c("ABCO" = "#4EDFC7",
+                               "PIPO" = "#2E8B57",
+                               "PIST" = "#89CFF0",
+                               "PSME" = "#5D3FD3")) +
+  theme_minimal()
+
+## species composition by plot
+
+num_trees_by_plot <- dbh_5 %>% 
+  group_by(PlotName, PlotSize, Species, TreatmentStatus) %>% 
+  summarize(count=n())
+
+TreatedPlotTrees <- filter(num_trees_by_plot, TreatmentStatus == "Treated")
+UntreatedPlotTrees <- filter(num_trees_by_plot, TreatmentStatus == "Untreated")
+
+TreatedComp <- ggplot(TreatedPlotTrees, aes(x = PlotName, y = count, fill = Species)) +
+  geom_bar(position = "fill", stat = "identity") +
+  xlab("") +
+  ylab("Percent species") +
+  scale_fill_manual(values = c("ABCO" = "#4EDFC7",
+                               "PIPO" = "#2E8B57",
+                               "PIST" = "#89CFF0",
+                               "PSME" = "#5D3FD3")) +
+  theme_minimal()+
+  theme(legend.position = "none")
+
+UntreatedComp <- ggplot(UntreatedPlotTrees, aes(x = PlotName, y = count, fill = Species)) +
+  geom_bar(position = "fill", stat = "identity") +
+  xlab("") +
+  ylab("Percent species") +
+  scale_fill_manual(values = c("ABCO" = "#4EDFC7",
+                               "PIPO" = "#2E8B57",
+                               "PIST" = "#89CFF0",
+                               "PSME" = "#5D3FD3")) +
+  theme_minimal()+
+  theme(legend.position = "none")
+
+grid.arrange(TreatedComp, UntreatedComp, ncol=1)
+
+## tree density 
+
+num_trees_by_sp <- dbh_5 %>% 
+  group_by(Species) %>%
+  summarize(count=n())
+
+density <- num_trees_by_sp$count / sum(merged_summary$PlotSize)
+
+num_trees_by_sp$density <- density
+
+ggplot(num_trees_by_sp, aes(x = Species, y = density, fill = Species)) +
+  geom_bar(stat = "identity") +
+  xlab("") +
+  ylab("Trees per hectare") +
+  ylim(0, 200) +
+  scale_fill_manual(values = c("ABCO" = "#4EDFC7",
+                               "PIPO" = "#2E8B57",
+                               "PIST" = "#89CFF0",
+                               "PSME" = "#5D3FD3")) +
+  theme_minimal()+
+  theme(legend.position = "none")
+
+## tree density by treatment
+
+num_trees_by_treatment <- dbh_5 %>% 
+  group_by(Species, TreatmentStatus) %>% 
+  summarize(count=n())
+
+density <- num_trees_by_treatment$count / (sum(merged_summary$PlotSize) / 2)
+
+num_trees_by_treatment$density <- density
+
+ggplot(num_trees_by_treatment, aes(x = Species, y = density, fill = Species)) +
+  geom_bar(stat = "identity") +
+  xlab("") +
+  ylab("Trees per hectare") +
+  ylim(0, 400) +
+  scale_fill_manual(values = c("ABCO" = "#4EDFC7",
+                               "PIPO" = "#2E8B57",
+                               "PIST" = "#89CFF0",
+                               "PSME" = "#5D3FD3")) +
+  theme_minimal()+
+  theme(legend.position = "none") + 
+  facet_wrap(~ TreatmentStatus)
+
+## tree density by plot
+
+num_trees_by_plot <- dbh_5 %>% 
+  group_by(PlotName, PlotSize, Species, TreatmentStatus) %>% 
+  summarize(count=n())
+
+density <- num_trees_by_plot$count / num_trees_by_plot$PlotSize
+
+num_trees_by_plot$density <- density
+
+ggplot(num_trees_by_plot, aes(x= Species, y = density, fill = Species)) +
+  geom_bar(stat = "identity") +
+  xlab("") +
+  ylab("Number of species") +
+  ylim(0, 1500) +
+  scale_fill_manual(values = c("ABCO" = "#4EDFC7",
+                               "PIPO" = "#2E8B57",
+                               "PIST" = "#89CFF0",
+                               "PSME" = "#5D3FD3")) +
+  theme_minimal()+
+  theme(legend.position = "none") + 
+  facet_wrap(~ TreatmentStatus + PlotName, ncol = 6)
+
+## hist of species by treatment
+
+ggplot(dbh_5, aes(x=DBH, fill = TreatmentStatus)) +
+  geom_histogram(stat = "count", position = "dodge") +
+  xlab("DBH") +
+  ylab("Number of trees") +
+  ylim(0, 50) +
+  theme_minimal() +
+  theme(legend.title = element_blank()) +
+  facet_wrap(~ Species)
+
+## condition stuff
 
 dbh_5_cond_table <- dbh_5 %>%
   group_by(Condition, Species) %>%
@@ -397,12 +543,6 @@ setnames(dbh_5_cond_table, old=c ("1","3"), new=c ("live", "dalb"))
 propDALB <- dbh_5_cond_table$dalb / dbh_5_cond_table$live
 
 dbh_5_cond_table$propDALB <- propDALB
-
-## hist of data
-
-ggplot(dbh_5, aes(x=DBH)) +
-  geom_histogram() +
-  facet_wrap(~ TreatmentStatus)
 
 ## hist facet wrap by species
 
@@ -507,37 +647,55 @@ dbh_all_cond_table$propDALB <- propDALB
   
 veg_data <- read.csv("data/all veg 2024.csv")
 
-BTN4 <- veg_data %>% filter(grepl("BTN4V", PlotID, ignore.case = TRUE))
-SFS4 <- veg_data %>% filter(grepl("SFS4V", PlotID, ignore.case = TRUE))
-SFF1 <- veg_data %>% filter(grepl("SFF1V", PlotID, ignore.case = TRUE))
-SFF2 <- veg_data %>% filter(grepl("SFF2V", PlotID, ignore.case = TRUE))
-SFF3 <- veg_data %>% filter(grepl("SFF3V", PlotID, ignore.case = TRUE))
-SFF4 <- veg_data %>% filter(grepl("SFF4V", PlotID, ignore.case = TRUE))
-SFF5 <- veg_data %>% filter(grepl("SFF5V", PlotID, ignore.case = TRUE))
-SFF6 <- veg_data %>% filter(grepl("SFF6V", PlotID, ignore.case = TRUE))
-SFF7 <- veg_data %>% filter(grepl("SFF7V", PlotID, ignore.case = TRUE))
-SFF8 <- veg_data %>% filter(grepl("SFF8V", PlotID, ignore.case = TRUE))
-SFF9 <- veg_data %>% filter(grepl("SFF9V", PlotID, ignore.case = TRUE))
-SFF10 <- veg_data %>% filter(grepl("SFF10V", PlotID, ignore.case = TRUE))
+veg_data[c('Site', 'ID')] <- str_split_fixed(veg_data$PlotID, '-', 2)
+veg_data$ID <- as.factor(veg_data$ID)
 
 #Add treatment status
 
-SFS4$TreatmentStatus <- "Treated"
-BTN4$TreatmentStatus <- "Untreated"
-SFF1$TreatmentStatus <- "Treated"
-SFF2$TreatmentStatus <- "Untreated"
-SFF3$TreatmentStatus <- "Untreated"
-SFF4$TreatmentStatus <- "Untreated"
-SFF5$TreatmentStatus <- "Treated"
-SFF6$TreatmentStatus <- "Untreated"
-SFF7$TreatmentStatus <- "Treated"
-SFF8$TreatmentStatus <- "Treated"
-SFF9$TreatmentStatus <- "Untreated"
-SFF10$TreatmentStatus <- "Treated"
+PlotID <- c("SFS4V", "BTN4V", "SFF1V", "SFF2V", "SFF3V", "SFF4V", "SFF5V", "SFF6V", "SFF7V", "SFF8V", "SFF9V", "SFF10V")
+TreatmentType <- c("Treated", "Untreated", "Treated", "Untreated", "Untreated", "Untreated", "Treated", "Untreated", "Treated", "Treated", "Untreated", "Treated")
+TreatmentStatus <- data.frame(PlotID, TreatmentType)
+veg_data <- join_by(veg_data, TreatmentStatus)
 
-aerial_data <- filter(veg_data, CoverType == "Aerial")
+basal_data <- filter(veg_data, CoverType == "Basal" & Percent != "T")
+basal_data$Percent <- as.numeric(basal_data$Percent)
 
-ggplot(aerial_data, aes(x=Species, fill = Species)) +
-  geom_bar(stat = "count")
-  
+treated_mean_basal_cover<- basal_data %>%
+  group_by(Site, CoverClass, TreatmentType)%>%
+  summarise(avg = mean(Percent))
 
+ggplot(mean_basal_cover, aes(x = Site, y = avg, fill = CoverClass)) +
+  geom_bar(position = "fill", stat = "identity") +
+  xlab("") +
+  ylab("Basal cover (%)") +
+  scale_fill_manual(values = c("B" = "#3366CC",
+                                 "D" = "#DC3912",
+                                 "G" = "#FF9900",
+                                 "L" = "#109618",
+                                 "Lg" = "#990099",
+                                 "M" = "#0099C6",
+                                 "R" = "#DD4477",
+                                 "Rt" = "#96cea4",
+                                 "St" = "#B82E2E",
+                                 "V" = "#316395"),
+                      labels = c("B" = "bare",
+                                 "D" = "duff",
+                                 "G" = "gravel",
+                                 "L" = "litter",
+                                 "Lg" = "log",
+                                 "M" = "moss",
+                                 "R" = "rock",
+                                 "Rt" = "root",
+                                 "St" = "stump",
+                                 "V" = "vegetation")) +
+  theme_minimal()+
+  facet_wrap(~TreatmentType)
+
+## take the veg percent and divide it up into species cover
+
+aerial_data <- filter(veg_data, CoverType == "Aerial" & Percent != "T" & Species != "N/A")
+aerial_data$Percent <- as.numeric(aerial_data$Percent)
+
+mean_aerial_veg<- aerial_data %>%
+  group_by(Site, Species)%>%
+  summarise(avg = mean(Percent))
