@@ -647,27 +647,47 @@ dbh_all_cond_table$propDALB <- propDALB
   
 veg_data <- read.csv("data/all veg 2024.csv")
 
-veg_data[c('Site', 'ID')] <- str_split_fixed(veg_data$PlotID, '-', 2)
-veg_data$ID <- as.factor(veg_data$ID)
+#veg_data[c('Site', 'ID')] <- str_split_fixed(veg_data$PlotID, '-', 2)
+#veg_data$ID <- as.factor(veg_data$ID)
 
 #Add treatment status
 
-PlotID <- c("SFS4V", "BTN4V", "SFF1V", "SFF2V", "SFF3V", "SFF4V", "SFF5V", "SFF6V", "SFF7V", "SFF8V", "SFF9V", "SFF10V")
-TreatmentType <- c("Treated", "Untreated", "Treated", "Untreated", "Untreated", "Untreated", "Treated", "Untreated", "Treated", "Treated", "Untreated", "Treated")
-TreatmentStatus <- data.frame(PlotID, TreatmentType)
-veg_data <- join_by(veg_data, TreatmentStatus)
+veg_data$Plot<-str_extract(veg_data$PlotID, "[^-]+")
 
-basal_data <- filter(veg_data, CoverType == "Basal" & Percent != "T")
-basal_data$Percent <- as.numeric(basal_data$Percent)
+veg_data <- veg_data %>%
+  mutate(TreatmentStatus = (case_when(Plot == "SFS4V" ~ "Treated",
+                                      Plot == "BTN4V" ~ "Untreated",
+                                      Plot == "SFF1V" ~ "Treated",
+                                      Plot == "SFF2V" ~ "Untreated",
+                                      Plot == "SFF3V" ~ "Untreated",
+                                      Plot == "SFF4V" ~ "Untreated",
+                                      Plot == "SFF5V" ~ "Treated",
+                                      Plot == "SFF6V" ~ "Untreated",
+                                      Plot == "SFF7V" ~ "Treated",
+                                      Plot == "SFF8V" ~ "Treated",
+                                      Plot == "SFF9V" ~ "Untreated",
+                                      Plot == "SFF10V" ~ "Treated",
+  )))
 
-treated_mean_basal_cover<- basal_data %>%
-  group_by(Site, CoverClass, TreatmentType)%>%
+t_basal_data <- filter(veg_data, TreatmentStatus == "Treated", CoverType == "Basal" & Percent != "T")
+t_basal_data$Percent <- as.numeric(t_basal_data$Percent)
+
+u_basal_data <- filter(veg_data, TreatmentStatus == "Untreated", CoverType == "Basal" & Percent != "T")
+u_basal_data$Percent <- as.numeric(u_basal_data$Percent)
+
+t_mean_basal_cover<- t_basal_data %>%
+  group_by(Plot, CoverClass, TreatmentStatus)%>%
   summarise(avg = mean(Percent))
 
-ggplot(mean_basal_cover, aes(x = Site, y = avg, fill = CoverClass)) +
+u_mean_basal_cover<- u_basal_data %>%
+  group_by(Plot, CoverClass, TreatmentStatus)%>%
+  summarise(avg = mean(Percent))
+
+treated_basal_graph <- ggplot(t_mean_basal_cover, aes(x = Plot, y = avg, fill = CoverClass)) +
   geom_bar(position = "fill", stat = "identity") +
   xlab("") +
   ylab("Basal cover (%)") +
+  ggtitle("Treated") +
   scale_fill_manual(values = c("B" = "#3366CC",
                                  "D" = "#DC3912",
                                  "G" = "#FF9900",
@@ -688,10 +708,53 @@ ggplot(mean_basal_cover, aes(x = Site, y = avg, fill = CoverClass)) +
                                  "Rt" = "root",
                                  "St" = "stump",
                                  "V" = "vegetation")) +
-  theme_minimal()+
-  facet_wrap(~TreatmentType)
+  theme_minimal()
+
+untreated_basal_graph <- ggplot(u_mean_basal_cover, aes(x = Plot, y = avg, fill = CoverClass)) +
+  geom_bar(position = "fill", stat = "identity") +
+  xlab("") +
+  ylab("Basal cover (%)") +
+  ggtitle("Untreated") +
+  scale_fill_manual(values = c("B" = "#3366CC",
+                               "D" = "#DC3912",
+                               "G" = "#FF9900",
+                               "L" = "#109618",
+                               "Lg" = "#990099",
+                               "M" = "#0099C6",
+                               "R" = "#DD4477",
+                               "Rt" = "#96cea4",
+                               "St" = "#B82E2E",
+                               "V" = "#316395"),
+                    labels = c("B" = "bare",
+                               "D" = "duff",
+                               "G" = "gravel",
+                               "L" = "litter",
+                               "Lg" = "log",
+                               "M" = "moss",
+                               "R" = "rock",
+                               "Rt" = "root",
+                               "St" = "stump",
+                               "V" = "vegetation")) +
+  theme_minimal()
+
+grid.arrange(treated_basal_graph, untreated_basal_graph)
 
 ## take the veg percent and divide it up into species cover
+
+t_basal_species <- filter(t_basal_data, CoverClass == "V")
+
+t_mean_species_basal_cover<- t_basal_species %>%
+  group_by(Plot, Species, TreatmentStatus)%>%
+  summarise(avg = mean(Percent))
+
+ggplot(t_mean_species_basal_cover, aes(x = Plot, y = avg, fill = Species)) +
+  geom_bar(position = "fill", stat = "identity") +
+  xlab("") +
+  ylab("Basal species cover") +
+  ggtitle("Treated") +
+  theme_minimal()
+
+## aerial
 
 aerial_data <- filter(veg_data, CoverType == "Aerial" & Percent != "T" & Species != "N/A")
 aerial_data$Percent <- as.numeric(aerial_data$Percent)
