@@ -347,6 +347,8 @@ ggplot(dbh_2.5, aes(x=DBH, fill = TreatmentStatus)) +
 
 dbh_2.5_cond <- filter(dbh_2.5, Condition != 2  & Condition != 7  & Condition != 11 & Condition != 9 & Condition != "NA")
 
+dbh_2.5_cond$Conditon[dbh_2.5_cond$Condition == '3'] <- '1'
+
 dbh_2.5_cond$Condition <- as.factor(dbh_2.5_cond$Condition)
 
 dbh_2.5_cond_table <- dbh_2.5_cond %>%
@@ -669,6 +671,8 @@ veg_data <- veg_data %>%
                                       Plot == "SFF10V" ~ "Treated",
   )))
 
+# basal ground cover only
+
 t_basal_data <- filter(veg_data, TreatmentStatus == "Treated", CoverType == "Basal" & Percent != "T")
 t_basal_data$Percent <- as.numeric(t_basal_data$Percent)
 
@@ -739,26 +743,82 @@ untreated_basal_graph <- ggplot(u_mean_basal_cover, aes(x = Plot, y = avg, fill 
 
 grid.arrange(treated_basal_graph, untreated_basal_graph)
 
-## take the veg percent and divide it up into species cover
+# The vegetation percent in the graph above but split into species
 
-t_basal_species <- filter(t_basal_data, CoverClass == "V")
+t_basal_species <- filter(veg_data, CoverType == "Basal" & TreatmentStatus == "Treated" & CoverClass == "V" & Percent != "T")
+t_basal_species$Percent <- as.numeric(t_basal_species$Percent)
 
 t_mean_species_basal_cover<- t_basal_species %>%
-  group_by(Plot, Species, TreatmentStatus)%>%
-  summarise(avg = mean(Percent))
+  group_by(Species)%>%
+  summarise(PercentSum = sum(Percent))
+t_mean_species_basal_cover <- t_mean_species_basal_cover %>%
+  mutate(avg = t_mean_species_basal_cover$PercentSum / 72)
 
-ggplot(t_mean_species_basal_cover, aes(x = Plot, y = avg, fill = Species)) +
-  geom_bar(position = "fill", stat = "identity") +
+u_basal_species <- filter(veg_data, CoverType == "Basal" & TreatmentStatus == "Untreated" & CoverClass == "V" & Percent != "T")
+u_basal_species$Percent <- as.numeric(u_basal_species$Percent)
+
+u_mean_species_basal_cover<- u_basal_species %>%
+  group_by(Species)%>%
+  summarise(PercentSum = sum(Percent))
+u_mean_species_basal_cover <- u_mean_species_basal_cover %>%
+  mutate(avg = u_mean_species_basal_cover$PercentSum / 72)
+
+t_basal_species <- ggplot(t_mean_species_basal_cover, aes(x = Species, y = avg)) +
+  geom_bar(stat = "identity") +
   xlab("") +
-  ylab("Basal species cover") +
+  ylab("Average species basal cover (%)") +
+  ylim(0, 1.5) +
   ggtitle("Treated") +
-  theme_minimal()
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle=45, vjust=.5, hjust=1))
 
-## aerial
+u_basal_species <- ggplot(u_mean_species_basal_cover, aes(x = Species, y = avg)) +
+  geom_bar(stat = "identity") +
+  xlab("") +
+  ylab("Average species basal cover (%)") +
+  ylim(0, 1.5) +
+  ggtitle("Untreated") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle=45, vjust=.5, hjust=1))
 
-aerial_data <- filter(veg_data, CoverType == "Aerial" & Percent != "T" & Species != "N/A")
-aerial_data$Percent <- as.numeric(aerial_data$Percent)
+grid.arrange(t_basal_species, u_basal_species)
 
-mean_aerial_veg<- aerial_data %>%
-  group_by(Site, Species)%>%
-  summarise(avg = mean(Percent))
+## aerial species
+
+t_aerial_data <- filter(veg_data, TreatmentStatus == "Treated", CoverType == "Aerial" & Percent != "T" & Percent != "" & Species != "N/A")
+t_aerial_data$Percent <- as.numeric(t_aerial_data$Percent)
+
+t_mean_aerial_veg <- t_aerial_data %>%
+  group_by(Species)%>%
+  summarise(PercentSum = sum(Percent))
+t_mean_aerial_veg <- t_mean_aerial_veg %>%
+  mutate(avg = t_mean_aerial_veg$PercentSum / 72)
+
+u_aerial_data <- filter(veg_data, TreatmentStatus == "Untreated", CoverType == "Aerial" & Percent != "T" & Percent != "" & Species != "N/A")
+u_aerial_data$Percent <- as.numeric(u_aerial_data$Percent)
+
+u_mean_aerial_veg <- u_aerial_data %>%
+  group_by(Species)%>%
+  summarise(PercentSum = sum(Percent))
+u_mean_aerial_veg <- u_mean_aerial_veg %>%
+  mutate(avg = u_mean_aerial_veg$PercentSum / 72)
+
+t_species_aerial_graph <- ggplot(t_mean_aerial_veg, aes(x = Species, y = avg)) +
+  geom_bar(stat = "identity") +
+  xlab("") +
+  ylab("Aerial species cover") +
+  ylim(0, 4) +
+  ggtitle("Treated") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle=45, vjust=.5, hjust=1))
+
+u_species_aerial_graph <- ggplot(u_mean_aerial_veg, aes(x = Species, y = avg)) +
+  geom_bar(stat = "identity") +
+  xlab("") +
+  ylab("Aerial species cover") +
+  ylim(0, 4) +
+  ggtitle("Untreated") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle=45, vjust=.5, hjust=1))
+
+grid.arrange(t_species_aerial_graph, u_species_aerial_graph)
