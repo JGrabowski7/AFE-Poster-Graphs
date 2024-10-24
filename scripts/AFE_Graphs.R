@@ -7,6 +7,8 @@ library(dplyr)
 library(gridExtra)
 library(tidyverse)
 library(data.table)
+library(car)
+
 
 tree_data <- read.csv("data/all_trees_2024.csv")
 
@@ -44,7 +46,7 @@ tree_data <- tree_data %>%
 --------------------------------------------------------------------------------
 ## filter data to make dbh cutoff 2.5 
 
-dbh_2.5 <- filter(tree_data, Diameter < 2.5 & SpeciesID %in% c("PIPO", "PIST", "PSME", "ABCO", "QUGA"))
+dbh_2.5 <- filter(tree_data, Diameter < 2.5 & SpeciesID %in% c("PIPO", "PIST", "PSME", "ABCO"))
 
 dbh_2.5_table <- dbh_2.5 %>%
   group_by(TreatmentStatus, SpeciesID) %>%
@@ -270,6 +272,31 @@ ggplot(num_trees_by_plot, aes(x= SpeciesID, y = density, fill = SpeciesID)) +
   theme(legend.position = "none") + 
   facet_wrap(~ TreatmentStatus + Plot, ncol = 6)
 
+# MOG vs juvenile
+
+small_trees_by_plot <- dbh_2.5 %>% 
+  group_by(Plot, SpeciesID) %>% 
+  summarize(count=n())
+
+tree_data <- tree_data %>%
+  mutate(MOG = case_when(Old_growth == "Y" | Diameter > 30 ~ "Y"))
+
+live_MOG <- tree_data %>%
+  filter(MOG == "Y" & Tree_condition %in% c(1,3,4,7) & SpeciesID %in% c("PIPO", "ABCO", "PIST", "PSME")) %>%
+  group_by(Plot, SpeciesID, TreatmentStatus) %>%
+  summarize(MOG_live_count = n())
+
+new_data <- full_join(live_MOG, small_trees_by_plot, by = c("Plot", "SpeciesID"))
+
+new_data$MOG_live_count <- ifelse(is.na(new_data$MOG_live_count), 0, new_data$MOG_live_count)
+
+new_data$count <- ifelse(is.na(new_data$count), 0, new_data$count)
+
+ggplot() +
+geom_point(new_data, mapping=aes(x=MOG_live_count,y=count, pch = TreatmentStatus)) +
+  facet_wrap(~ SpeciesID, scales = "free") +
+geom_smooth(new_data, mapping=aes(x=MOG_live_count,y=count), method = "lm")
+
 ## hist of species by treatment
 
 ggplot(dbh_2.5, aes(x= Diameter, fill = TreatmentStatus)) +
@@ -439,58 +466,148 @@ ggplot(all_basal_cover, aes(x = TreatmentStatus, y = avg, fill = CoverClass)) +
 
 # The vegetation percent in the graph above but split into species
 
-t_basal_species <- filter(veg_data, CoverType == "Basal" & TreatmentStatus == "Treated" & CoverClass == "V" & Percent != "T")
-t_basal_species$Percent <- as.numeric(t_basal_species$Percent)
+trt_basal_species <- filter(veg_data, CoverType == "Basal" & TreatmentStatus == "Treated" & CoverClass == "V" & Percent != "T")
+trt_basal_species$Percent <- as.numeric(trt_basal_species$Percent)
 
-t_mean_species_basal_cover<- t_basal_species %>%
-  group_by(Species, LifeForm)%>%
+trt_mean_species_basal_cover<- trt_basal_species %>%
+  group_by(Species) %>%
   summarise(PercentSum = sum(Percent))
-avg <- t_mean_species_basal_cover$PercentSum / 72
-t_mean_species_basal_cover$avg <- avg
 
-# get the top 10 of each
-
-
-u_basal_species <- filter(veg_data, CoverType == "Basal" & TreatmentStatus == "Untreated" & CoverClass == "V" & Percent != "T")
-u_basal_species$Percent <- as.numeric(u_basal_species$Percent)
-
-u_mean_species_basal_cover<- u_basal_species %>%
-  group_by(Species, LifeForm)%>%
+trt_mean_species_basal_cover_lifeform <- trt_basal_species %>%
+  group_by(Species, LifeForm,TreatmentStatus) %>%
   summarise(PercentSum = sum(Percent))
-avg <- u_mean_species_basal_cover$PercentSum / 72
-u_mean_species_basal_cover$avg <- avg
-u_top10_basal_species <- u_mean_species_basal_cover %>% top_n(10, avg)
 
-t_basal_species <- ggplot(t_top10_basal_species, aes(x = Species, y = avg, fill = LifeForm)) +
+trt_top10_cover <- top_n(trt_mean_species_basal_cover, 10, PercentSum)
+trt_top10_LifeForm <- left_join(trt_top10_cover, trt_mean_species_basal_cover_lifeform, by = c("Species", "PercentSum"), relationship = "many-to-many")
+trt_top10_LifeForm$avg <- trt_top10_LifeForm$PercentSum/72
+
+TreatmentStatus <- "Treated"
+trt_top10_LifeForm$TreatmentStatus <- TreatmentStatus
+
+untrt_basal_species <- filter(veg_data, CoverType == "Basal" & TreatmentStatus == "Untreated" & CoverClass == "V" & Percent != "T")
+untrt_basal_species$Percent <- as.numeric(untrt_basal_species$Percent)
+
+untrt_mean_species_basal_cover<- untrt_basal_species %>%
+  group_by(Species) %>%
+  summarise(PercentSum = sum(Percent))
+
+untrt_mean_species_basal_cover_lifeform <- untrt_basal_species %>%
+  group_by(Species, LifeForm) %>%
+  summarise(PercentSum = sum(Percent))
+
+untrt_top10_cover <- top_n(untrt_mean_species_basal_cover, 10, PercentSum)
+
+untrt_top10_LifeForm <- left_join(untrt_top10_cover, untrt_mean_species_basal_cover_lifeform, by = c("Species", "PercentSum"), relationship = "many-to-many")
+
+untrt_top10_LifeForm$avg <- untrt_top10_LifeForm$PercentSum/72
+
+TreatmentStatus <- "Untreated"
+untrt_top10_LifeForm$TreatmentStatus <- TreatmentStatus
+
+top10_basal_cover <- left_join(trt_top10_LifeForm, untrt_top10_LifeForm, by = c("Species", "PercentSum", "avg", "LifeForm", "TreatmentStatus"), relationship = "many-to-many")
+
+trt_basal_species <- ggplot(trt_top10_LifeForm, aes(x = reorder(Species, -avg), y = avg, fill = LifeForm)) +
   geom_bar(stat = "identity") +
   xlab("") +
   ylab("Average species basal cover (%)") +
   ylim(0, 1.5) +
   ggtitle("Treated") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle=45, vjust=.5, hjust=1))
+  scale_fill_manual(values = c(Graminoid = "#008744",
+                               Forb = "#0057e7")) +
+  theme_minimal()
 
-u_basal_species <- ggplot(u_mean_species_basal_cover, aes(x = Species, y = avg, fill = LifeForm)) +
+untrt_basal_species <- ggplot(untrt_top10_LifeForm, aes(x = reorder(Species, -avg), y = avg, fill = LifeForm)) +
   geom_bar(stat = "identity") +
   xlab("") +
   ylab("Average species basal cover (%)") +
   ylim(0, 1.5) +
   ggtitle("Untreated") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle=45, vjust=.5, hjust=1))
+  scale_fill_manual(values = c(Graminoid = "#008744",
+                               Forb = "#0057e7")) +
+  theme_minimal()
 
-grid.arrange(t_basal_species, u_basal_species)
+grid.arrange(trt_basal_species, untrt_basal_species)
+
+## grass cover graph and stats
+
+basal_lifeform <- filter(veg_data, CoverType == "Basal" & CoverClass == "V" & Percent != "T")
+basal_lifeform$Percent <- as.numeric(basal_lifeform$Percent)
+
+mean_lifeform_basal_cover<- basal_lifeform %>%
+  group_by(LifeForm, Plot, TreatmentStatus) %>%
+  summarise(PercentSum = sum(Percent))
+
+t_grass_by_plot <- filter(mean_lifeform_basal_cover, LifeForm == "Graminoid", TreatmentStatus == "Treated")
+
+u_grass_by_plot <- filter(mean_lifeform_basal_cover, LifeForm == "Graminoid", TreatmentStatus == "Untreated")
+
+t_grass_graph <- ggplot(t_grass_by_plot, aes(x = Plot, y = PercentSum)) +
+                  geom_bar(stat = "identity") +
+                  xlab("") +
+                  ylab("Sum of grass cover") +
+                  ggtitle("Treated") +
+                  theme_minimal()
+
+u_grass_graph <- ggplot(u_grass_by_plot, aes(x = Plot, y = PercentSum)) +
+                  geom_bar(stat = "identity") +
+                  xlab("") +
+                  ylab("Sum of grass cover") +
+                  ggtitle("Untreated") +
+                  theme_minimal()
+
+grid.arrange(t_grass_graph, u_grass_graph)
+
+grass_by_plot <- filter(mean_lifeform_basal_cover, LifeForm == "Graminoid")
+
+new_row <- data.frame(
+  LifeForm = "Graminoid",
+  Plot = "SFF3",
+  TreatmentStatus = "Untreated",
+  PercentSum = 0)
+
+grass_by_plot <- rbind(grass_by_plot, new_row)
+
+grass_by_plot$TreatmentStatus <- as.factor(grass_by_plot$TreatmentStatus)
+
+shapiro.test(grass_by_plot$PercentSum)
+
+leveneTest(PercentSum ~ TreatmentStatus, data = grass_by_plot)
+
+wilcox.test(PercentSum ~ TreatmentStatus, grass_by_plot , exact = FALSE)
+
+t.test(t_grass_by_plot$PercentSum, u_grass_by_plot$PercentSum)
+
+--------
+veg_data$quadrat <- gsub(".*-", "", veg_data$PlotID)
+
+basal_lifeform <- filter(veg_data, CoverType == "Basal" & CoverClass == "V" & Percent != "T")
+basal_lifeform$Percent <- as.numeric(basal_lifeform$Percent)
+
+sum_lifeform_basal_cover<- basal_lifeform %>%
+  group_by(LifeForm, quadrat, TreatmentStatus) %>%
+  summarise(PercentSum = sum(Percent))
+
+grass_by_quad <- filter(sum_lifeform_basal_cover, LifeForm == "Graminoid")
+
+
+
 
 ## aerial species
 
-t_aerial_data <- filter(veg_data, TreatmentStatus == "Treated", CoverType == "Aerial" & Percent != "T" & Percent != "" & Percent != "0" & Species != "N/A")
-t_aerial_data$Percent <- as.numeric(t_aerial_data$Percent)
+trt_aerial_data <- filter(veg_data, TreatmentStatus == "Treated", CoverType == "Aerial" & Percent != "T" & Percent != "" & Percent != "0" & Species != "N/A")
+trt_aerial_data$Percent <- as.numeric(trt_aerial_data$Percent)
 
-t_mean_aerial_veg <- t_aerial_data %>%
-  group_by(Species)%>%
+trt_mean_aerial_veg <- t_aerial_data %>%
+  group_by(Species) %>%
   summarise(PercentSum = sum(Percent))
-t_mean_aerial_veg <- t_mean_aerial_veg %>%
-  mutate(avg = t_mean_aerial_veg$PercentSum / 72)
+
+trt_mean_aerial_veg_lifeform <- trt_aerial_data %>%
+  group_by(Species, LifeForm, TreatmentStatus) %>%
+  summarise(PercentSum = sum(Percent))
+
+trt_top10_aerial_cover <- top_n(, 10, PercentSum)
+trt_top10_LifeForm <- left_join(trt_top10_cover, trt_mean_species_basal_cover_lifeform, by = c("Species", "PercentSum"), relationship = "many-to-many")
+trt_top10_LifeForm$avg <- trt_top10_LifeForm$PercentSum/72
 
 u_aerial_data <- filter(veg_data, TreatmentStatus == "Untreated", CoverType == "Aerial" & Percent != "T" & Percent != "" & Percent != "0" & Species != "N/A")
 u_aerial_data$Percent <- as.numeric(u_aerial_data$Percent)
