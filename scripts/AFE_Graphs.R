@@ -8,7 +8,7 @@ library(gridExtra)
 library(tidyverse)
 library(data.table)
 library(car)
-
+library(glmmTMB)
 
 tree_data <- read.csv("data/all_trees_2024.csv")
 
@@ -272,30 +272,54 @@ ggplot(num_trees_by_plot, aes(x= SpeciesID, y = density, fill = SpeciesID)) +
   theme(legend.position = "none") + 
   facet_wrap(~ TreatmentStatus + Plot, ncol = 6)
 
-# MOG vs juvenile
+# MOG vs small trees
 
-small_trees_by_plot <- dbh_2.5 %>% 
-  group_by(Plot, SpeciesID) %>% 
-  summarize(count=n())
+small_trees <- filter(tree_data, Diameter < 2.5 & SpeciesID %in% c("PIPO", "PIST", "PSME", "ABCO") & Tree_condition %in% c(1,3,7))
+
+small_trees <- small_trees %>% 
+  group_by(Plot, PlotSize, SpeciesID) %>% 
+  summarize(small_tree_count=n())
+
+small_trees$small_tree_density <- small_trees$small_tree_count / small_trees$PlotSize
 
 tree_data <- tree_data %>%
   mutate(MOG = case_when(Old_growth == "Y" | Diameter > 30 ~ "Y"))
 
-live_MOG <- tree_data %>%
-  filter(MOG == "Y" & Tree_condition %in% c(1,3,4,7) & SpeciesID %in% c("PIPO", "ABCO", "PIST", "PSME")) %>%
-  group_by(Plot, SpeciesID, TreatmentStatus) %>%
-  summarize(MOG_live_count = n())
+MOG_trees <- tree_data %>%
+  filter(MOG == "Y" &  SpeciesID %in% c("PIPO", "ABCO", "PIST", "PSME") & Tree_condition %in% c(1, 2, 3, 5, 7)) %>%
+  group_by(Plot, PlotSize, SpeciesID, TreatmentStatus) %>%
+  summarize(MOG_count = n())
 
-new_data <- full_join(live_MOG, small_trees_by_plot, by = c("Plot", "SpeciesID"))
+MOG_trees$MOG_density <- MOG_trees$MOG_count / MOG_trees$PlotSize
 
-new_data$MOG_live_count <- ifelse(is.na(new_data$MOG_live_count), 0, new_data$MOG_live_count)
+smallAndMOG <- full_join(MOG_trees, small_trees, by = c("Plot", "SpeciesID", "PlotSize"))
 
-new_data$count <- ifelse(is.na(new_data$count), 0, new_data$count)
+smallAndMOG$MOG_density <- ifelse(is.na(smallAndMOG$MOG_density), 0, smallAndMOG$MOG_density)
+
+smallAndMOG$small_tree_density <- ifelse(is.na(smallAndMOG$small_tree_density), 0, smallAndMOG$small_tree_density)
+
+smallAndMOG$TreatmentStatus <- ifelse(is.na(smallAndMOG$TreatmentStatus), "Untreated", smallAndMOG$TreatmentStatus)
+
 
 ggplot() +
-geom_point(new_data, mapping=aes(x=MOG_live_count,y=count, pch = TreatmentStatus)) +
+geom_point(smallAndMOG, mapping=aes(x=MOG_density,y=small_tree_density , pch = TreatmentStatus)) +
   facet_wrap(~ SpeciesID, scales = "free") +
-geom_smooth(new_data, mapping=aes(x=MOG_live_count,y=count), method = "lm")
+geom_smooth(smallAndMOG, mapping=aes(x=MOG_density,y=small_tree_density ), method = "lm")
+
+mod = lm(small_tree_density ~ MOG_density + SpeciesID, data = smallAndMOG)
+
+summary(mod)
+
+glm = glmmTMB(log(small_tree_density + 1) ~ MOG_density*SpeciesID, data = smallAndMOG)
+
+glm = glmmTMB(small_tree_density ~ MOG_density, data = subset(smallAndMOG, SpeciesID == "PSME"))
+
+summary(glm)
+
+performance::r2(glm)
+
+hist(smallAndMOG$MOG_density)
+
 
 ## hist of species by treatment
 
@@ -392,11 +416,6 @@ ggplot(all_basal_cover, aes(x = TreatmentStatus, y = avg, fill = CoverClass)) +
                                  "D" = "#DC3912",
                                  "G" = "#FF9900",
                                  "L" = "#109618",
-                                 "Lg" = "#990099",
-                                 "M" = "#0099C6",
-                                 "R" = "#DD4477",
-                                 "Rt" = "#96cea4",
-                                 "St" = "#B82E2E",
                                  "V" = "#316395"),
                       labels = c("B" = "bare",
                                  "D" = "duff",
@@ -675,3 +694,67 @@ u_lifeform_graph <- ggplot(u_mean_lifeform, aes(x = LifeForm, y = avg)) +
   theme_minimal()
 
 grid.arrange(t_lifeform_graph, u_lifeform_graph)
+
+## new stuff
+
+veg_data <- as.data.table(veg_data)
+
+veg_data$Percent <- as.numeric(ifelse(veg_data$Percent == "T", 0.1, veg_data$Percent))
+
+t_data <- veg_data[,.  (sum=sum(Percent)),by=c("LifeForm","TreatmentStatus","Species","Plot")]
+
+r_data <- t_data[,. (richness = .N), by = c("Plot", "TreatmentStatus")]
+
+trt<-subset(r_data , TreatmentStatus =="Treated")
+
+untrt<-subset(r_data , TreatmentStatus =="Untreated")
+
+ggplot() +
+  geom_density(r_data, mapping = aes(x=richness, fill = TreatmentStatus), alpha = 0.5) +
+  theme_bw()
+
+mod = lm(sum ~ TreatmentStatus, data = g_data)
+
+wilcox.test(trt$richness, untrt$richness)
+kruskal.test(trt$richness, untrt$richness)
+
+summary(mod)
+
+hist(r_data$richness)
+
+g_data = subset(t_data, LifeForm == "Graminoid")
+
+ggplot() +
+  geom_boxplot(g_data, mapping = aes(x = TreatmentStatus, y = sum))
+
+mod2 = glmmTMB(sum ~ TreatmentStatus + (1|LifeForm), data = t_data)
+summary(mod2)
+--------------------------------------------------------------------------------
+
+%>% group_by(LifeForm, TreatmentStatus, Species, Plot)
+  
+filter(veg_data, CoverType == "Basal" & Percent != "T")
+
+t_basal_data$Percent <- as.numeric(t_basal_data$Percent)
+
+u_basal_data <- filter(veg_data, TreatmentStatus == "Untreated", CoverType == "Basal" & Percent != "T")
+u_basal_data$Percent <- as.numeric(u_basal_data$Percent)
+
+t_mean_basal_cover<- t_basal_data %>%
+  group_by(CoverClass)%>%
+  summarise(PercentSum = sum(Percent))
+t_mean_basal_cover <- t_mean_basal_cover %>%
+  mutate(avg = t_mean_basal_cover$PercentSum / 72,
+         TreatmentStatus = "Treated")
+
+u_mean_basal_cover <- u_basal_data %>%
+  group_by(CoverClass)%>%
+  summarise(PercentSum = sum(Percent))
+u_mean_basal_cover <- u_mean_basal_cover %>%
+  mutate(avg = u_mean_basal_cover$PercentSum / 72,
+         TreatmentStatus = "Untreated")
+
+list <- list(t_mean_basal_cover, u_mean_basal_cover)
+
+all_basal_cover <- list %>% reduce(full_join, by= c("CoverClass", "PercentSum", "avg", "TreatmentStatus"))
+
