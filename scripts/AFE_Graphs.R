@@ -46,7 +46,8 @@ tree_data <- tree_data %>%
 --------------------------------------------------------------------------------
 ## filter data to make dbh cutoff 2.5 
 
-dbh_2.5 <- filter(tree_data, Diameter < 2.5 & SpeciesID %in% c("PIPO", "PIST", "PSME", "ABCO"))
+dbh_2.5 <- filter(tree_data, Diameter < 2.5 & SpeciesID %in% 
+                    c("PIPO", "PIST", "PSME", "ABCO"))
 
 dbh_2.5_table <- dbh_2.5 %>%
   group_by(TreatmentStatus, SpeciesID) %>%
@@ -63,7 +64,8 @@ dbh_2.5_table$rate <-rate
 
 ggplot(dbh_2.5, aes(x=Diameter)) +
   geom_histogram() +
-  facet_wrap(~ TreatmentStatus)
+  facet_wrap(~ TreatmentStatus) +
+  theme_bw()
 
 ## BOXPLOT OF TREE DENSITY BY TREATMENT
 
@@ -114,7 +116,7 @@ ggplot(avg_tree_num, aes(x = X2, y = X3, fill = X2), alpha = 0.5) +
   xlab("") +
   ylab("Density (trees per hectare)") +
   ylim(0, 1000) +
-  theme_minimal() +
+  theme_bw() +
   theme(legend.position = "none") 
   
 ## LIVE MOG BY SPECIES
@@ -122,18 +124,9 @@ ggplot(avg_tree_num, aes(x = X2, y = X3, fill = X2), alpha = 0.5) +
 tree_data <- tree_data %>%
   mutate(MOG = case_when(Old_growth == "Y" | Diameter > 30 ~ "Y"))
 
-#MOG <- tree_data %>%
-  #filter(MOG == "Y") %>%
-  #group_by(TreatmentStatus) %>%
-  #summarize(MOG_count = n())
-
-all_live_MOG <- tree_data %>%
-  filter(MOG == "Y" & Tree_condition %in% c(0,1,3,4,7,8,9,10,11)) %>%
-  group_by(TreatmentStatus) %>%
-  summarize(MOG_live_count = n())
-
 live_MOG <- tree_data %>%
-  filter(MOG == "Y" & Tree_condition %in% c(1,3,4,7) & SpeciesID %in% c("PIPO", "ABCO", "PIST", "PSME")) %>%
+  filter(MOG == "Y" & Tree_condition %in% c(1,3,7) & SpeciesID %in%
+    c("PIPO", "ABCO", "PIST", "PSME")) %>%
   group_by(TreatmentStatus, SpeciesID) %>%
   summarize(MOG_live_count = n())
 
@@ -142,17 +135,18 @@ ggplot(live_MOG, aes(x = SpeciesID, y = MOG_live_count, fill = SpeciesID)) +
   xlab("") +
   ylab("Number of live MOG") +
   ylim(0, 1000) +
-  scale_fill_manual(values = c("ABCO" = "#4EDFC7",
-                               "PIPO" = "#2E8B57",
-                               "PIST" = "#89CFF0",
-                               "PSME" = "#5D3FD3")) +
-  theme_minimal() +
+  scale_fill_manual(values = c("ABCO" = "#4EDFC7", "PIPO" = "#2E8B57", 
+                               "PIST" = "#89CFF0", "PSME" = "#5D3FD3")) +
+  theme_bw() +
   facet_wrap(~ TreatmentStatus) +
   theme(legend.position = "none")
 
 ## SPECIES COMPOSITION BY TREATMENT
 
-num_trees_by_treatment <- dbh_2.5 %>% 
+small_trees <- filter(tree_data, Diameter < 2.5 & SpeciesID %in% 
+                        c("PIPO", "PIST", "PSME", "ABCO"))
+
+num_trees_by_treatment <- small_trees %>% 
   group_by(SpeciesID, TreatmentStatus) %>% 
   summarize(count=n())
 
@@ -160,11 +154,27 @@ ggplot(num_trees_by_treatment, aes(x = TreatmentStatus, y = count, fill = Specie
   geom_bar(position = "fill", stat = "identity") +
   xlab("") +
   ylab("Species composition") +
-  scale_fill_manual(values = c("ABCO" = "#4EDFC7",
-                               "PIPO" = "#2E8B57",
-                               "PIST" = "#89CFF0",
-                               "PSME" = "#5D3FD3")) +
-  theme_minimal()
+  scale_fill_manual(values = c("ABCO" = "#4EDFC7", "PIPO" = "#2E8B57",
+                               "PIST" = "#89CFF0", "PSME" = "#5D3FD3")) +
+  theme_bw()
+
+## Species comp with oak
+
+small_trees <- filter(tree_data, Diameter < 2.5 & SpeciesID %in% 
+                    c("PIPO", "PIST", "PSME", "ABCO", "QUGA"))
+
+num_trees_by_treatment <- small_trees %>% 
+  group_by(SpeciesID, TreatmentStatus) %>% 
+  summarize(count=n())
+
+ggplot(num_trees_by_treatment, aes(x = TreatmentStatus, y = count, fill = SpeciesID)) +
+  geom_bar(position = "fill", stat = "identity") +
+  xlab("") +
+  ylab("Species composition") +
+  scale_fill_manual(values = c("ABCO" = "#4EDFC7", "PIPO" = "#2E8B57",
+                               "PIST" = "#89CFF0", "PSME" = "#5D3FD3",
+                               "QUGA" = "#CC5500")) +
+  theme_bw()
 
 ## species composition by plot
 
@@ -730,31 +740,3 @@ ggplot() +
 mod2 = glmmTMB(sum ~ TreatmentStatus + (1|LifeForm), data = t_data)
 summary(mod2)
 --------------------------------------------------------------------------------
-
-%>% group_by(LifeForm, TreatmentStatus, Species, Plot)
-  
-filter(veg_data, CoverType == "Basal" & Percent != "T")
-
-t_basal_data$Percent <- as.numeric(t_basal_data$Percent)
-
-u_basal_data <- filter(veg_data, TreatmentStatus == "Untreated", CoverType == "Basal" & Percent != "T")
-u_basal_data$Percent <- as.numeric(u_basal_data$Percent)
-
-t_mean_basal_cover<- t_basal_data %>%
-  group_by(CoverClass)%>%
-  summarise(PercentSum = sum(Percent))
-t_mean_basal_cover <- t_mean_basal_cover %>%
-  mutate(avg = t_mean_basal_cover$PercentSum / 72,
-         TreatmentStatus = "Treated")
-
-u_mean_basal_cover <- u_basal_data %>%
-  group_by(CoverClass)%>%
-  summarise(PercentSum = sum(Percent))
-u_mean_basal_cover <- u_mean_basal_cover %>%
-  mutate(avg = u_mean_basal_cover$PercentSum / 72,
-         TreatmentStatus = "Untreated")
-
-list <- list(t_mean_basal_cover, u_mean_basal_cover)
-
-all_basal_cover <- list %>% reduce(full_join, by= c("CoverClass", "PercentSum", "avg", "TreatmentStatus"))
-
