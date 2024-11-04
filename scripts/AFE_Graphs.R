@@ -47,7 +47,7 @@ tree_data <- tree_data %>%
 ## filter data to make dbh cutoff 2.5 
 
 dbh_2.5 <- filter(tree_data, Diameter < 2.5 & SpeciesID %in% 
-                    c("PIPO", "PIST", "PSME", "ABCO"))
+                    c("PIPO", "PIST", "PSME", "ABCO", "QUGA"))
 
 dbh_2.5_table <- dbh_2.5 %>%
   group_by(TreatmentStatus, SpeciesID) %>%
@@ -66,6 +66,71 @@ ggplot(dbh_2.5, aes(x=Diameter)) +
   geom_histogram() +
   facet_wrap(~ TreatmentStatus) +
   theme_bw()
+
+## DENSITY BY TREATMENT
+## should oak be included???
+
+small_trees <- filter(tree_data, Diameter < 2.5 & SpeciesID %in% 
+                        c("PIPO", "PIST", "PSME", "ABCO"))
+
+small_trees <- small_trees %>% 
+  group_by(Plot, PlotSize, TreatmentStatus, SpeciesID) %>%
+  summarize(count=n())
+
+t_num_trees <- filter(small_trees, TreatmentStatus == "Treated")
+
+t_num_trees <- t_num_trees %>%
+  mutate(count = ifelse(PlotSize == 0.25, count * 4, count))
+
+t_table <- data.frame(matrix(nrow = 0, ncol = 3))
+
+for (site in unique(t_num_trees$Plot)) {
+  row_temp = data.frame(matrix(nrow = 1, ncol = 3))
+  row_temp[1,1] = site
+  row_temp[1,2] = "Treated"
+  row_temp[1,3] = sum(t_num_trees$count[t_num_trees$Plot == site])
+  t_table = rbind(t_table, row_temp)
+}
+
+u_num_trees <- filter(small_trees, TreatmentStatus == "Untreated")
+
+u_num_trees <- u_num_trees %>%
+  mutate(count = ifelse(PlotSize == 0.25, count * 4, count))
+
+u_table <- data.frame(matrix(nrow = 0, ncol = 3))
+
+for (site in unique(u_num_trees$Plot)) {
+  row_temp = data.frame(matrix(nrow = 1, ncol = 3))
+  row_temp[1,1] = site
+  row_temp[1,2] = "Untreated"
+  row_temp[1,3] = sum(u_num_trees$count[u_num_trees$Plot == site])
+  u_table = rbind(u_table, row_temp)
+}
+
+list <- list(t_table, u_table)
+
+tree_num_plot <- list %>% reduce(full_join, by = c("X1", "X2", "X3"))
+
+tree_num_plot <- tree_num_plot %>% rename(c("Plot" = "X1", "TreatmentStatus" = "X2", 
+                                            "count" = "X3"))
+
+treated_trees <- sum(tree_num_plot$count[tree_num_plot$TreatmentStatus == "Treated"])
+
+untreated_trees <- sum(tree_num_plot$count[tree_num_plot$TreatmentStatus == "Untreated"])
+
+count <- c(treated_trees, untreated_trees)
+
+TreatmentStatus <- c("Treated", "Untreated")
+
+trees_by_treatment <- data.frame(count, TreatmentStatus)
+
+ggplot(trees_by_treatment, aes(x = TreatmentStatus, y = count, fill = TreatmentStatus)) +
+  geom_bar(stat = "identity") +
+  xlab("") +
+  ylab("Density (trees per hectare)") +
+  ylim(0, 1500) +
+  theme_bw() +
+  theme(legend.position = "none")
 
 ## BOXPLOT OF TREE DENSITY BY TREATMENT
 
@@ -109,9 +174,9 @@ for (site in unique(u_num_trees$Plot)) {
 
 list <- list(t_table, u_table)
 
-avg_tree_num <- list %>% reduce(full_join, by = c("X1", "X2", "X3"))
+tree_num <- list %>% reduce(full_join, by = c("X1", "X2", "X3"))
 
-ggplot(avg_tree_num, aes(x = X2, y = X3, fill = X2), alpha = 0.5) +
+ggplot(tree_num, aes(x = X2, y = X3, fill = X2), alpha = 0.5) +
   geom_boxplot() +
   xlab("") +
   ylab("Density (trees per hectare)") +
@@ -160,10 +225,10 @@ ggplot(num_trees_by_treatment, aes(x = TreatmentStatus, y = count, fill = Specie
 
 ## Species comp with oak
 
-small_trees <- filter(tree_data, Diameter < 2.5 & SpeciesID %in% 
+small_trees_oak <- filter(tree_data, Diameter < 2.5 & SpeciesID %in% 
                     c("PIPO", "PIST", "PSME", "ABCO", "QUGA"))
 
-num_trees_by_treatment <- small_trees %>% 
+num_trees_by_treatment <- small_trees_oak %>% 
   group_by(SpeciesID, TreatmentStatus) %>% 
   summarize(count=n())
 
@@ -258,6 +323,19 @@ ggplot(num_trees_by_treatment, aes(x = SpeciesID, y = density, fill = SpeciesID)
   theme(legend.position = "none") + 
   facet_wrap(~ TreatmentStatus)
 
+## median tree density
+
+num_trees_by_sp <- dbh_2.5 %>% 
+  group_by(Plot, PlotSize, SpeciesID, TreatmentStatus) %>%
+  summarize(count=n())
+
+density <- num_trees_by_sp$count / num_trees_by_sp$PlotSize
+
+num_trees_by_sp$density <- density
+
+quga <- filter(num_trees_by_sp, SpeciesID == "QUGA", TreatmentStatus == "Untreated")
+
+mean(quga$density)
 ## tree density by plot
 
 num_trees_by_plot <- dbh_2.5 %>% 
@@ -312,9 +390,13 @@ smallAndMOG$TreatmentStatus <- ifelse(is.na(smallAndMOG$TreatmentStatus), "Untre
 
 
 ggplot() +
-geom_point(smallAndMOG, mapping=aes(x=MOG_density,y=small_tree_density , pch = TreatmentStatus)) +
+geom_point(smallAndMOG, mapping=aes(x= MOG_density, y= small_tree_density, 
+                                    pch = TreatmentStatus)) +
   facet_wrap(~ SpeciesID, scales = "free") +
-geom_smooth(smallAndMOG, mapping=aes(x=MOG_density,y=small_tree_density ), method = "lm")
+geom_smooth(smallAndMOG, mapping=aes(x=MOG_density,y=small_tree_density ), method = "lm") +
+  xlab("MOG density") +
+  ylab("Small tree density (dbh >= 2.5)") +
+  theme_bw() 
 
 mod = lm(small_tree_density ~ MOG_density + SpeciesID, data = smallAndMOG)
 
@@ -442,10 +524,12 @@ ggplot(all_basal_cover, aes(x = TreatmentStatus, y = avg, fill = CoverClass)) +
 
 # basal ground cover by plot
 
-t_basal_data <- filter(veg_data, TreatmentStatus == "Treated",CoverType == "Basal" & Percent != "T")
+t_basal_data <- filter(veg_data, TreatmentStatus == "Treated", 
+                       CoverType == "Basal" & Percent != "T")
 t_basal_data$Percent <- as.numeric(t_basal_data$Percent)
 
-u_basal_data <- filter(veg_data, TreatmentStatus == "Untreated", CoverType == "Basal" & Percent != "T")
+u_basal_data <- filter(veg_data, TreatmentStatus == "Untreated", 
+                       CoverType == "Basal" & Percent != "T")
 u_basal_data$Percent <- as.numeric(u_basal_data$Percent)
 
 t_mean_basal_cover_plot <- t_basal_data %>%
@@ -559,16 +643,19 @@ grid.arrange(trt_basal_species, untrt_basal_species)
 
 ## grass cover graph and stats
 
-basal_lifeform <- filter(veg_data, CoverType == "Basal" & CoverClass == "V" & Percent != "T")
+basal_lifeform <- filter(veg_data, CoverType == "Basal" & CoverClass == "V" 
+                         & Percent != "T")
 basal_lifeform$Percent <- as.numeric(basal_lifeform$Percent)
 
 mean_lifeform_basal_cover<- basal_lifeform %>%
   group_by(LifeForm, Plot, TreatmentStatus) %>%
   summarise(PercentSum = sum(Percent))
 
-t_grass_by_plot <- filter(mean_lifeform_basal_cover, LifeForm == "Graminoid", TreatmentStatus == "Treated")
+t_grass_by_plot <- filter(mean_lifeform_basal_cover, LifeForm == "Graminoid", 
+                          TreatmentStatus == "Treated")
 
-u_grass_by_plot <- filter(mean_lifeform_basal_cover, LifeForm == "Graminoid", TreatmentStatus == "Untreated")
+u_grass_by_plot <- filter(mean_lifeform_basal_cover, LifeForm == "Graminoid", 
+                          TreatmentStatus == "Untreated")
 
 t_grass_graph <- ggplot(t_grass_by_plot, aes(x = Plot, y = PercentSum)) +
                   geom_bar(stat = "identity") +
@@ -669,7 +756,9 @@ grid.arrange(t_species_aerial_graph, u_species_aerial_graph)
 
 ## growth form by treatment
 
-t_aerial_data <- filter(veg_data, TreatmentStatus == "Treated", CoverType == "Aerial" & Percent != "T" & Percent != "" & Percent != "0" & Species != "N/A")
+t_aerial_data <- filter(veg_data, TreatmentStatus == "Treated", CoverType == "Aerial" 
+                        & Percent != "T" & Percent != "" & Percent != "0" 
+                        & Species != "N/A")
 t_aerial_data$Percent <- as.numeric(t_aerial_data$Percent)
 
 t_mean_lifeform <- t_aerial_data %>%
@@ -711,17 +800,22 @@ veg_data <- as.data.table(veg_data)
 
 veg_data$Percent <- as.numeric(ifelse(veg_data$Percent == "T", 0.1, veg_data$Percent))
 
-t_data <- veg_data[,.  (sum=sum(Percent)),by=c("LifeForm","TreatmentStatus","Species","Plot")]
+t_data <- veg_data[,.  (sum=sum(Percent)),by=c("LifeForm","TreatmentStatus","Species",
+                                               "Plot")]
 
 r_data <- t_data[,. (richness = .N), by = c("Plot", "TreatmentStatus")]
 
-trt<-subset(r_data , TreatmentStatus =="Treated")
+trt <- subset(r_data , TreatmentStatus =="Treated")
 
-untrt<-subset(r_data , TreatmentStatus =="Untreated")
+untrt <- subset(r_data , TreatmentStatus =="Untreated")
 
 ggplot() +
-  geom_density(r_data, mapping = aes(x=richness, fill = TreatmentStatus), alpha = 0.5) +
-  theme_bw()
+  geom_boxplot(r_data, mapping = aes(x = TreatmentStatus, y = richness, 
+                                     fill = TreatmentStatus)) +
+  xlab("") +
+  ylab("Species richness") +
+  theme_bw() +
+  theme(legend.position = "none")
 
 mod = lm(sum ~ TreatmentStatus, data = g_data)
 
